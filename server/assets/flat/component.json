@@ -1,0 +1,5 @@
+{
+    "type": "generator",
+    "description": "Basic, flat rectangle geometry generator.",
+    "files": "flat.ply"
+}
