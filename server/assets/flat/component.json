@@ -1,5 +1,20 @@
 {
-    "type": "generator",
-    "description": "Basic, flat rectangle geometry generator.",
-    "files": "flat.ply"
+  "subComponents":
+  [
+    {
+      "type": "generator",
+      "description": "Basic, flat rectangle geometry generator.",
+      "files": ["geom.ply"]
+    },
+    {
+      "type": "filter",
+      "description": "Simplest vertex shader.",
+      "files": ["vertex.shader"]
+    },
+    {
+      "type": "filter",
+      "description": "Simplest fragment shader.",
+      "files": ["fragment.shader"]
+    }
+  ]
 }

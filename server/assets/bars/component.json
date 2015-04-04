@@ -1,5 +1,10 @@
 {
-    "type": "filter",
-    "description": "Vertical black and white bars.",
-    "files": []
+  "subComponents":
+  [
+    {
+      "type": "filter",
+      "description": "Vertical bar frag shader.",
+      "files": []
+    }
+  ]
 }

@@ -1,5 +1,6 @@
 'use strict';
 
+var fs = require('fs');
 var _ = require('lodash');
 var Component = require('./component.model');
 
@@ -16,7 +17,10 @@ exports.show = function(req, res) {
   Component.findById(req.params.id, function (err, component) {
     if(err) { return handleError(res, err); }
     if(!component) { return res.send(404); }
-    return res.json(component);
+    fs.readFile('./server/assets/'+component.name+'/'+component.file, 'utf-8', function (err, componentText) {
+      console.log(componentText);
+      return res.json(componentText);
+    });
   });
 };
 
