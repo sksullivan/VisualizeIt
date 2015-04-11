@@ -1,119 +1,93 @@
 'use strict';
 
+// Module to keep track of our designer page.
 angular.module('vizualizeItApp')
-  .controller('DesignerCtrl', function ($scope,designerService) {
-    $scope.message = 'Hello';
-    designerService.getComponents(function (componentList) {
-      console.log(componentList);
-      designerService.getComponent(componentList[0]._id,function (flatGeomText) {
-        designerService.getComponent(componentList[1]._id,function (flatVertexShaderText) {
-          designerService.getComponent(componentList[2]._id,function (flatFragmentShaderText) {
-            main(PlyReader().parse(flatGeomText),flatVertexShaderText,flatFragmentShaderText);
+  .controller('DesignerCtrl', function ($scope,componentLoaderService,previewService,flowchartService) {
+
+    // Initially, get the list of components from the server. Then setup our page
+    // and start the preview with a blank setup.
+    componentLoaderService.getComponents(function (componentList) {
+      // Ugly series of callbacks to get the first 3 components independent of
+      // the flowchart system.
+      componentLoaderService.getComponent(componentList[0]._id,function (flatGeomText) {
+        componentLoaderService.getComponent(componentList[1]._id,function (flatVertexShaderText) {
+          componentLoaderService.getComponent(componentList[2]._id,function (flatFragmentShaderText) {
+            // Read the data in the geometry file as geometric data. Render to
+            // the preview canvas.
+            previewService.render(PlyReader().parse(flatGeomText),flatVertexShaderText,flatFragmentShaderText);
           });
         });
       });
+
+      // We'll make a class to hold data about each component in our flowchart.
+      // Store each component's raw data from the server in a 'hash' field.
+      var FlowchartComponent = class {
+        constructor(hash) {
+          this.hash = hash;
+          this.x = 0;
+          this.y = 0;
+        }
+      }
+
+      // Make an object for our flowchart. Give it a reference to it's canvas.
+      // Set our initialization function, and make new flowchart components based
+      // on our server response.
+      $scope.flowchart = {};
+      $scope.flowchart.canvas = document.getElementById("flowchart");
+      $scope.flowchart.activeComponents = [];
+      $scope.flowchart.placeNewComponent = flowchartPlaceNewComponent;
+      $scope.flowchart.items = componentList.map(function (flowchartComponentHash) {
+        return new FlowchartComponent(flowchartComponentHash);
+      });
+
+      // Print out the list of items in our system.
+      console.log($scope.flowchart.items);
+
+      // Set our page to listen for keypresses with jQuery.
+      $(document).keypress(function (e) {
+        if (e.keyCode == 13) { // Enter
+          $scope.loadComponentData();
+        } else {
+          var index = e.keyCode-48; // Hopefully the number keys
+          // Clone the component selected from our list, add it to our flowchart.
+          $scope.flowchart.placeNewComponent(new FlowchartComponent($scope.flowchart.items[index].hash));
+          flowchartService.addComponent();
+        }
+      });
     });
 
-    var main = function(geom,vshader,fshader) {
-        var cvs = document.getElementById("preview");
+    // Add a component to flowchart.
+    var flowchartPlaceNewComponent = function (component) {
+      $scope.$apply(function () {
+        $scope.flowchart.activeComponents.push(component);
+      })
+    }
 
-        cvs.width=window.innerWidth/2;
-        cvs.height=window.innerHeight/2;
+    // Lazy load the actual data for each component.
+    $scope.loadComponentData = function () {
+      flowchartService.saveFlowchartData();
+      // For now, we just get the component order (for the actual visualizer
+      // layering) from the left to right ordering.
+      $scope.flowchart.activeComponents.sort(function (a,b) {
+        return a.x - b.x;
+      });
 
-        /*========================= GET WEBGL CONTEXT ========================= */
-        var GL;
-        try {
-          GL = cvs.getContext("experimental-webgl", {antialias: true});
-        } catch (e) {
-          alert("You are not webgl compatible :(") ;
-          return false;
+      // Iterate over components, keeping track of how many components need
+      // processing. When each component is finished being processed, check to
+      // see if all components have been processed. If so, begin rendering to the
+      // preview canvas (todo).
+      $scope.componentsToRetrieve = $scope.flowchart.activeComponents.length;
+      $scope.flowchart.activeComponents.forEach(function (component) {
+        if (component.text === undefined) {
+          componentLoaderService.getComponent(component.hash._id,function (textData) {
+            component.text = textData;
+          });
         }
-
-        /*========================= SHADERS ========================= */
-        /*jshint multistr: true */
-        var shader_vertex_source = vshader;
-
-
-        var shader_fragment_source = fshader
-
-
-        var get_shader=function(source, type, typeString) {
-          var shader = GL.createShader(type);
-          GL.shaderSource(shader, source);
-          GL.compileShader(shader);
-          if (!GL.getShaderParameter(shader, GL.COMPILE_STATUS)) {
-            alert("ERROR IN "+typeString+ " SHADER : " + GL.getShaderInfoLog(shader));
-            return false;
-          }
-          return shader;
-        };
-
-        var shader_vertex=get_shader(shader_vertex_source, GL.VERTEX_SHADER, "VERTEX");
-
-        var shader_fragment=get_shader(shader_fragment_source, GL.FRAGMENT_SHADER, "FRAGMENT");
-
-        var SHADER_PROGRAM=GL.createProgram();
-        GL.attachShader(SHADER_PROGRAM, shader_vertex);
-        GL.attachShader(SHADER_PROGRAM, shader_fragment);
-
-        GL.linkProgram(SHADER_PROGRAM);
-
-        //var _color = GL.getAttribLocation(SHADER_PROGRAM, "color");
-        var _position = GL.getAttribLocation(SHADER_PROGRAM, "position");
-
-        //GL.enableVertexAttribArray(_color);
-        GL.enableVertexAttribArray(_position);
-
-        GL.useProgram(SHADER_PROGRAM);
-
-
-        /*========================= THE TRIANGLE ========================= */
-        //POINTS :
-        console.log(geom);
-        var verts = [];
-        geom.points.forEach(function (vertex) {
-          verts.push([vertex[0],vertex[1],vertex[2]]);
-        });
-        var triangle_vertex = geom.vertices;
-
-        var TRIANGLE_VERTEX= GL.createBuffer ();
-        GL.bindBuffer(GL.ARRAY_BUFFER, TRIANGLE_VERTEX);
-        GL.bufferData(GL.ARRAY_BUFFER,
-                      new Float32Array(triangle_vertex),
-          GL.STATIC_DRAW);
-
-        //FACES :
-        console.log([].concat.apply([],geom.polys));
-        var geom_faces = [].concat.apply([],geom.polys);
-        var GEOM_FACES= GL.createBuffer ();
-        GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, GEOM_FACES);
-        GL.bufferData(GL.ELEMENT_ARRAY_BUFFER,
-                      new Uint16Array(geom_faces),
-          GL.STATIC_DRAW);
-
-
-
-        /*========================= DRAWING ========================= */
-        GL.clearColor(0.0, 0.0, 0.0, 0.0);
-
-        var animate = function() {
-
-          GL.viewport(0.0, 0.0, cvs.width, cvs.height);
-          GL.clear(GL.COLOR_BUFFER_BIT);
-
-          GL.bindBuffer(GL.ARRAY_BUFFER, TRIANGLE_VERTEX);
-
-          GL.vertexAttribPointer(_position, 3, GL.FLOAT, false,4*(3),0) ;
-          //GL.vertexAttribPointer(_color, 3, GL.FLOAT, false,4*(2+3),2*4) ;
-
-          GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, GEOM_FACES);
-          //GL.drawElements(GL.TRIANGLES, 3, GL.UNSIGNED_SHORT, 0);
-          GL.drawArrays(GL.TRIANGLES, 0, geom_faces.length);
-          GL.flush();
-
-          window.requestAnimationFrame(animate);
-        };
-
-        animate();
-      };
+        $scope.componentsToRetrieve--;
+        if ($scope.componentsToRetrieve == 0) {
+          // TODO: Actually implement from this point on.
+          //console.log($scope.flowchart.activeComponents);
+        }
+      });
+    }
   });

@@ -8,6 +8,7 @@ var ComponentSchema = new Schema({
   name: String,
   description: String,
   file: String,
+  type: String,
   active: Boolean
 });
 

@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('vizualizeItApp')
-  .service('designerService', function ($http) {
+  .service('componentLoaderService', function ($http) {
     this.getComponents = function (componentListCallback) {
         $http.get('/api/components').success(function (data) {
             componentListCallback(data);

@@ -1,4 +1,13 @@
-<div class="col-md-12">
-This is the designer view.
+<!-- Our very simple template that defines a tool pane and two canvases, one for
+rendering our flowchart and one for rendering our visualizer. -->
+<div class="tool-pane">
+  <ol>
+    <li ng-repeat="item in flowchart.items">{{item.hash.fullName}}</li>
+  </ol>
 </div>
-<canvas id="preview"></canvas>
+<!--<canvas id="flowchart" class="top-pane" ></canvas>-->
+<div class="demo flowchart-demo top-pane" id="flowchart-demo">
+  <div class="window display-window" id="flowchartWindow0"><strong>DISPLAY</strong><br/><br/></div>
+  <div class="window" id="flowchartWindow{{$index+1}}" ng-repeat="component in flowchart.activeComponents"><strong>{{component.hash.fullName}}</strong><br/><br/></div>
+</div>
+<canvas id="preview" class="bottom-pane"></canvas>

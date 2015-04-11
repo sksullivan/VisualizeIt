@@ -60,17 +60,21 @@
       <script src="bower_components/angular-route/angular-route.js"></script>
       <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
       <script src="bower_components/lodash/dist/lodash.compat.js"></script>
+      <script src="bower_components/paper/dist/paper-full.js"></script>
+      <script src="bower_components/jsplumb/dist/js/dom.jsPlumb-1.7.5.js"></script>
       <!-- endbower -->
     <!-- endbuild -->
 
         <!-- build:js({.tmp,client}) app/app.js -->
         <script src="app/app.js"></script>
           <!-- injector:js -->
+          <script src="app/componentLoaderService/componentLoaderService.service.js"></script>
           <script src="app/designer/designer.controller.js"></script>
           <script src="app/designer/designer.js"></script>
-          <script src="app/designerService/designerService.service.js"></script>
+          <script src="app/flowchartService/flowchartService.service.js"></script>
           <script src="app/main/main.controller.js"></script>
           <script src="app/main/main.js"></script>
+          <script src="app/previewService/previewService.service.js"></script>
           <script src="components/PlyReader.js"></script>
           <script src="components/modal/modal.service.js"></script>
           <script src="components/navbar/navbar.controller.js"></script>
