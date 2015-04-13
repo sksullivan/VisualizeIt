@@ -4,7 +4,7 @@
     {
       "flowchartType": "filter",
       "dataType": "fragment",
-      "description": "Vertical bar frag shader.",
+      "description": "Red to black gradient.",
       "files": ["fragment.shader"]
     }
   ]

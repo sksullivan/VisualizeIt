@@ -2,17 +2,20 @@
   "subComponents":
   [
     {
-      "type": "generator",
+      "flowchartType": "generator",
+      "dataType": "geometry",
       "description": "Basic, flat rectangle geometry generator.",
       "files": ["geom.ply"]
     },
     {
-      "type": "filter",
+      "flowchartType": "filter",
+      "dataType": "vertex",
       "description": "Simplest vertex shader.",
       "files": ["vertex.shader"]
     },
     {
-      "type": "filter",
+      "flowchartType": "filter",
+      "dataType": "fragment",
       "description": "Simplest fragment shader.",
       "files": ["fragment.shader"]
     }

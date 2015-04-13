@@ -2,7 +2,8 @@
 
 angular.module('vizualizeItApp')
   .service('flowchartService', function() {
-    var elementCount = 0;
+    var componentCount = 0;
+    var componentDeletionCallback = null;
     var globalInstance;
     var setup = function() {
       var instance = jsPlumb.getInstance({
@@ -42,12 +43,11 @@ angular.module('vizualizeItApp')
       return instance;
     };
 
-    jsPlumb.ready(function () {
-
-    });
-
     globalInstance = setup();
 
+    this.registerComponentDeletionCallback = function (callback) {
+      componentDeletionCallback = callback;
+    };
     this.updateFlowchart = function () {
       // this is the paint style for the connecting lines..
       var connectorPaintStyle = {
@@ -136,14 +136,20 @@ angular.module('vizualizeItApp')
         };
 
         globalInstance.batch(function() {
-
-          for (var i = 1; i < elementCount + 1; i++) {
+          globalInstance.reset();
+          for (var i = 1; i < componentCount + 1; i++) {
             addEndpoints("Window" + i, ["RightMiddle"], ["LeftMiddle"]);
+            document.getElementById("flowchartWindow"+i).addEventListener("dblclick", function (e) {
+              globalInstance.remove(e.srcElement);
+              e.stopPropagation();
+              componentDeletionCallback(i-2);
+              componentCount--;
+            });
           }
           addEndpoints("Window0", [], ["LeftMiddle"]);
-          globalInstance.selectEndpoints().each(function(endpoint) {
+          /*globalInstance.selectEndpoints().each(function(endpoint) {
             console.log(endpoint);
-          });
+          });*/
 
           // listen for new connections; initialise them the same way we initialise the connections at startup.
           globalInstance.bind("connection", function(connInfo, originalEvent) {
@@ -159,23 +165,51 @@ angular.module('vizualizeItApp')
           // listen for clicks on connections, and offer to delete connections on click.
           //
           globalInstance.bind("click", function(conn, originalEvent) {
-            // if (confirm("Delete connection from " + conn.sourceId + " to " + conn.targetId + "?"))
-            //   instance.detach(conn);
-            conn.toggleType("basic");
+            if (conn !== undefined) {
+              if (confirm("Delete connection from " + conn.sourceId + " to " + conn.targetId + "?")) {
+                globalInstance.detach(conn);
+              }
+            }
           });
+
+
         });
 
         jsPlumb.fire("jsPlumbDemoLoaded", this.instance);
     };
 
-    this.addComponent = function(domElement) {
-      elementCount++;
+    this.addComponent = function(component) {
+      componentCount++;
       this.updateFlowchart();
+      component.domElementId = "flowchartWindow"+componentCount;
     };
 
     this.saveFlowchartData = function () {
-      globalInstance.selectEndpoints().each(function (endpoint) {
-        console.log(endpoint.id);
-      });
-    };
+        var nodes = {};
+        var edges = [];
+        globalInstance.selectEndpoints().each(function (endpoint) {
+            if (nodes[endpoint.element.id] !== undefined) {
+                var node = nodes[endpoint.element.id];
+                if (endpoint.isTarget) {
+                    node.inputs.push(endpoint.id);
+                } else {
+                    node.outputs.push(endpoint.id);
+                }
+            } else {
+                var node = { name: endpoint.element.id };
+                node.inputs = [];
+                node.outputs = [];
+                if (endpoint.isTarget) {
+                    node.inputs.push(endpoint.id);
+                } else {
+                    node.outputs.push(endpoint.id);
+                }
+                nodes[node.name] = node;
+            }
+        });
+        globalInstance.getConnections().forEach(function (connection) {
+            edges.push({ from: connection.endpoints[0].id, to: connection.endpoints[1].id });
+        });
+        return { nodes: nodes, edges: edges };
+      };
   });
