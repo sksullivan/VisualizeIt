@@ -174,7 +174,6 @@ angular.module('vizualizeItApp')
     };
 
     this.saveFlowchartData = function () {
-
       globalInstance.selectEndpoints().each(function (endpoint) {
         console.log(endpoint.id);
       });
