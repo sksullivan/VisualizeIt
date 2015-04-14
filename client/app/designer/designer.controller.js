@@ -69,11 +69,12 @@ angular.module('vizualizeItApp')
 
       // Knock off one element to retrieve for the DISPLAY flowchart element, which
       // doesn't have a corresponding component to load from the server.
-      $scope.componentsToRetrieve = Object.keys(componentGraph.nodes).length - 1;
-      Object.keys(componentGraph.nodes).forEach(function (node) {
-        var component = $scope.componentForDomElementId(node);
+
+      $scope.componentsToRetrieve = componentGraph.nodes.length - 1;
+      componentGraph.nodes.forEach(function (node) {
+        var component = $scope.componentForDomElementId(node.name);
         if (component !== undefined) {
-          componentLoaderService.getComponent(component.hash._id,function (textData) {
+          componentLoaderService.getComponent(component.hash._id, function (textData) {
             component.hash.text = textData;
             $scope.componentsToRetrieve--;
             if ($scope.componentsToRetrieve == 0) {
@@ -95,27 +96,46 @@ angular.module('vizualizeItApp')
     $scope.processShaders = function (componentGraph) {
       var components = $scope.flowchart.activeComponents;
 
-      // Iterate over components. If no geom, no vtx or no frag shader, stop.
+      // Get hashes from active components attatched to the appropriate graph nodes.
+      for (let graphComponent of componentGraph.nodes) {
+        for (let component of components) {
+          if (graphComponent.name == component.domElementId) {
+            graphComponent.hash = component.hash;
+          }
+        }
+      }
+
       var geometryComponents = [];
       var vertexComponents = [];
       var fragmentComponents = [];
 
       // Get the root node (the display flowchart element)
-      var exploreComponent = Object.keys(componentGraph.nodes)[Object.keys(componentGraph.nodes).length-1];
+      var exploreComponent = componentGraph.nodes[componentGraph.nodes.length-1];
 
       // Perform DFS on graph.
-      var stack = [exploreComponent];
-      while (stack.length > 0) {
-        var exploreComponent = stack.pop();
+      var exploreStack = $scope.inputComponentsTo(exploreComponent, componentGraph);
+      var visitedComponents = [];
+      while (exploreStack.length > 0) {
+        var exploreComponent = exploreStack.pop();
+        visitedComponents.push(exploreComponent);
         if (exploreComponent.hash.dataType == "geometry") {
           geometryComponents.push(exploreComponent);
-          Array.prototype.push(stack,$scope.childrenOf(exploreComponent));
         } else if (exploreComponent.hash.dataType == "vertex") {
           vertexComponents.push(exploreComponent);
         } else if (exploreComponent.hash.dataType == "fragment") {
           fragmentComponents.push(exploreComponent);
         }
+
+        // Push all adjacent nodes onto stack
+        var inputComponents = $scope.inputComponentsTo(exploreComponent, componentGraph);
+        for (let component of inputComponents) {
+          exploreStack.push(component);
+        }
       }
+      console.log("wtf");
+      console.log(geometryComponents);
+      console.log(vertexComponents);
+      console.log(fragmentComponents);
 
       if (geometryComponents.length == 0 || vertexComponents.length == 0 || fragmentComponents.length == 0) {
         alert("Need more componenets");
@@ -134,5 +154,28 @@ angular.module('vizualizeItApp')
         return PlyReader().parse(componentList[0].hash.text);
       }
       return componentList[0].hash.text;
+    };
+
+    $scope.inputComponentsTo = function (component, graph) {
+      var nodes = [];
+
+      // Iterate over all input endpoints to our component
+      for (let inputEndpoint of component.inputs) {
+        // Iterate over all edges
+        for (let edge of graph.edges) {
+          // If edge's to endpoint is our input, get the edge's from element
+          if (edge.to == inputEndpoint) {
+            for (let node of graph.nodes) {
+              for (let outputEndpoint of node.outputs) {
+                if (outputEndpoint == edge.from) {
+                  nodes.push(node);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return nodes;
     };
   });

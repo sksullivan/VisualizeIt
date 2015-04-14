@@ -185,32 +185,37 @@ angular.module('vizualizeItApp')
     };
 
     this.saveFlowchartData = function () {
-        var nodes = {};
+        var nodes = [];
         var edges = [];
         globalInstance.selectEndpoints().each(function (endpoint) {
-            if (nodes[endpoint.element.id] !== undefined) {
-                var node = nodes[endpoint.element.id];
-                if (endpoint.isTarget) {
-                    node.inputs.push(endpoint.id);
-                } else {
-                    node.outputs.push(endpoint.id);
-                }
-            } else {
-                var node = { name: endpoint.element.id };
-                node.inputs = [];
-                node.outputs = [];
-                if (endpoint.isTarget) {
-                    node.inputs.push(endpoint.id);
-                } else {
-                    node.outputs.push(endpoint.id);
-                }
-                nodes[node.name] = node;
+          var endpointNode;
+          for (let node of nodes) {
+            if (node.name == endpoint.element.id) {
+              endpointNode = node;
             }
+          }
+          // if endpoint's node is in there already
+          if (endpointNode !== undefined) {
+            if (endpoint.isTarget) {
+              endpointNode.inputs.push(endpoint.id);
+            } else {
+              endpointNode.outputs.push(endpoint.id);
+            }
+          } else {
+            var node = { name: endpoint.element.id };
+            node.inputs = [];
+            node.outputs = [];
+            if (endpoint.isTarget) {
+              node.inputs.push(endpoint.id);
+            } else {
+              node.outputs.push(endpoint.id);
+            }
+            nodes.push(node);
+          }
         });
         globalInstance.getConnections().forEach(function (connection) {
             edges.push({ from: connection.endpoints[0].id, to: connection.endpoints[1].id });
         });
-        console.log({ nodes: nodes, edges: edges });
         return { nodes: nodes, edges: edges };
       };
   });
