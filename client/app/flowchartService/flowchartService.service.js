@@ -210,6 +210,7 @@ angular.module('vizualizeItApp')
         globalInstance.getConnections().forEach(function (connection) {
             edges.push({ from: connection.endpoints[0].id, to: connection.endpoints[1].id });
         });
+        console.log({ nodes: nodes, edges: edges });
         return { nodes: nodes, edges: edges };
       };
   });

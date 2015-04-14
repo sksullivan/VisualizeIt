@@ -95,19 +95,25 @@ angular.module('vizualizeItApp')
     $scope.processShaders = function (componentGraph) {
       var components = $scope.flowchart.activeComponents;
 
-      
-
       // Iterate over components. If no geom, no vtx or no frag shader, stop.
       var geometryComponents = [];
       var vertexComponents = [];
       var fragmentComponents = [];
-      for (var i = 0; i < components.length; i++) {
-        if (components[i].hash.dataType == "geometry") {
-          geometryComponents.push(components[i]);
-        } else if (components[i].hash.dataType == "vertex") {
-          vertexComponents.push(components[i]);
-        } else if (components[i].hash.dataType == "fragment") {
-          fragmentComponents.push(components[i]);
+
+      // Get the root node (the display flowchart element)
+      var exploreComponent = Object.keys(componentGraph.nodes)[Object.keys(componentGraph.nodes).length-1];
+
+      // Perform DFS on graph.
+      var stack = [exploreComponent];
+      while (stack.length > 0) {
+        var exploreComponent = stack.pop();
+        if (exploreComponent.hash.dataType == "geometry") {
+          geometryComponents.push(exploreComponent);
+          Array.prototype.push(stack,$scope.childrenOf(exploreComponent));
+        } else if (exploreComponent.hash.dataType == "vertex") {
+          vertexComponents.push(exploreComponent);
+        } else if (exploreComponent.hash.dataType == "fragment") {
+          fragmentComponents.push(exploreComponent);
         }
       }
 
@@ -125,8 +131,6 @@ angular.module('vizualizeItApp')
 
     $scope.compileComponents = function (componentList) {
       if (componentList[0].hash.dataType == "geometry") {
-        console.log(componentList[0].hash);
-        console.log(componentList[0].hash.text);
         return PlyReader().parse(componentList[0].hash.text);
       }
       return componentList[0].hash.text;
