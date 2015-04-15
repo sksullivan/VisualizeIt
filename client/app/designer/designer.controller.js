@@ -2,7 +2,10 @@
 
 // Module to keep track of our designer page.
 angular.module('vizualizeItApp')
-  .controller('DesignerCtrl', function ($scope,componentLoaderService,previewService,flowchartService) {
+  .controller('DesignerCtrl', function ($scope,componentLoaderService,previewService,flowchartService, shaderCompileService) {
+    $scope.missingComponents = ["Geometry", "Vertex Shader", "Fragment Shader", "Blending Mode"];
+    $scope.blendModes = ["uniform mix","difference", "solid orange"];
+    $scope.selectedBlendMode = "";
 
     // Initially, get the list of components from the server. Then setup our page
     // and start the preview with a blank setup.
@@ -31,15 +34,22 @@ angular.module('vizualizeItApp')
       flowchartService.registerComponentDeletionCallback(function (index) {
         $scope.flowchart.activeComponents.splice(index, 1);
       });
+      flowchartService.registerNewConnectionCallback(function () {
+        $scope.loadComponentData();
+      });
+      $scope.$watch('selectedBlendMode', function () {
+        $scope.loadComponentData();
+      });
 
       // Print out the list of items in our system.
       console.log($scope.flowchart.items);
 
       // Set our page to listen for keypresses with jQuery.
       $(document).keypress(function (e) {
-        console.log(e.keyCode);
+        //console.log(e.keyCode);
         if (e.keyCode == 13) { // Enter
-          $scope.loadComponentData();
+          //$scope.loadComponentData();
+          //$scope.shouldRender = !$scope.shouldRender;
         } else {
           var index = e.keyCode-49; // Hopefully the number keys
           // Clone the component selected from our list, add it to our flowchart.
@@ -71,6 +81,9 @@ angular.module('vizualizeItApp')
       // doesn't have a corresponding component to load from the server.
 
       $scope.componentsToRetrieve = componentGraph.nodes.length - 1;
+      if ($scope.componentsToRetrieve == 0) {
+        $scope.processShaders(componentGraph);
+      }
       componentGraph.nodes.forEach(function (node) {
         var component = $scope.componentForDomElementId(node.name);
         if (component !== undefined) {
@@ -132,13 +145,21 @@ angular.module('vizualizeItApp')
           exploreStack.push(component);
         }
       }
-      console.log("wtf");
-      console.log(geometryComponents);
-      console.log(vertexComponents);
-      console.log(fragmentComponents);
 
-      if (geometryComponents.length == 0 || vertexComponents.length == 0 || fragmentComponents.length == 0) {
-        alert("Need more componenets");
+      $scope.missingComponents = [];
+      if (geometryComponents.length == 0 || vertexComponents.length == 0 || fragmentComponents.length == 0 || $scope.selectedBlendMode == "") {
+        if (geometryComponents.length == 0) {
+          $scope.missingComponents.push("Geometry");
+        }
+        if (vertexComponents.length == 0) {
+          $scope.missingComponents.push("Vertex Shader");
+        }
+        if (fragmentComponents.length == 0) {
+          $scope.missingComponents.push("Fragment Shader");
+        }
+        if ($scope.selectedBlendMode == "") {
+          $scope.missingComponents.push("Blending Mode");
+        }
         return;
       }
 
@@ -151,9 +172,13 @@ angular.module('vizualizeItApp')
 
     $scope.compileComponents = function (componentList) {
       if (componentList[0].hash.dataType == "geometry") {
+        // Combine geometry? Submit to compileShaderService?
         return PlyReader().parse(componentList[0].hash.text);
+      } else if (componentList[0].hash.dataType == "vertex") {
+        return componentList[0].hash.text;
       }
-      return componentList[0].hash.text;
+      // Submit list of shaders, ordered, to compileShaderService
+      return shaderCompileService.compile(componentList, $scope.selectedBlendMode);
     };
 
     $scope.inputComponentsTo = function (component, graph) {

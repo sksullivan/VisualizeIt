@@ -8,7 +8,6 @@ var ComponentSchema = new Schema({
   name: String,
   description: String,
   file: String,
-  flowchartType: String,
   dataType: String,
   active: Boolean
 });

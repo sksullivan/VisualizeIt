@@ -5,7 +5,13 @@
       "flowchartType": "filter",
       "dataType": "fragment",
       "description": "Red to black gradient.",
-      "files": ["fragment.shader"]
+      "files": ["fragmentHoriz.shader"]
+    },
+    {
+      "flowchartType": "filter",
+      "dataType": "fragment",
+      "description": "Up/Down green to black gradient.",
+      "files": ["fragmentVert.shader"]
     }
   ]
 }

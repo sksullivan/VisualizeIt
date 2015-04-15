@@ -1,0 +1,11 @@
+{
+  "subComponents":
+  [
+    {
+      "flowchartType": "filter",
+      "dataType": "fragment",
+      "description": "Debug shader.",
+      "files": ["fragment.shader"]
+    }
+  ]
+}

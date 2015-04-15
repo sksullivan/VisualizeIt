@@ -4,52 +4,58 @@ angular.module('vizualizeItApp')
   .service('flowchartService', function() {
     var componentCount = 0;
     var componentDeletionCallback = null;
+    var newConnectionCallback = null;
     var globalInstance;
+
+    // Method to initialize jsPlumb.
     var setup = function() {
       var instance = jsPlumb.getInstance({
-        // default drag options
+        // Setup basic jsPlumb styles for components.
         DragOptions: {
           cursor: 'pointer',
           zIndex: 2000
         },
-        // the overlays to decorate each connection with.  note that the label overlay uses a function to generate the label text; in this
-        // case it returns the 'labelText' member that we set on each connection in the 'init' method below.
         ConnectionOverlays: [
-          ["Arrow", {
-            location: 1
-          }],
-          ["Label", {
-            location: 0.1,
-            id: "label",
-            cssClass: "aLabel"
-          }]
+            [ "Arrow", { location: 1 } ],
+            [ "Label", {
+                location: 0.1,
+                id: "label",
+                cssClass: "aLabel"
+            }]
         ],
         Container: "flowchart-demo"
       });
       var basicType = {
         connector: "StateMachine",
         paintStyle: {
-          strokeStyle: "red",
-          lineWidth: 4
+          strokeStyle: "black",
+          lineWidth: 1
         },
         hoverPaintStyle: {
-          strokeStyle: "blue"
+          strokeStyle: "black"
         },
         overlays: [
           "Arrow"
         ]
-      };
+      }
       instance.registerConnectionType("basic", basicType);
       return instance;
     };
 
-    globalInstance = setup();
-
+    // Method to tell the flowchart what to do when deleting a component.
     this.registerComponentDeletionCallback = function (callback) {
       componentDeletionCallback = callback;
     };
+
+    this.registerNewConnectionCallback = function (callback) {
+      newConnectionCallback = callback;
+      callback();
+    }
+
+    // Method to update the appearance of the flowchart when a new component is
+    // added.
     this.updateFlowchart = function () {
-      // this is the paint style for the connecting lines..
+      // Appearance for connecting lines.
       var connectorPaintStyle = {
           lineWidth: 4,
           strokeStyle: "#61B7CF",
@@ -57,7 +63,7 @@ angular.module('vizualizeItApp')
           outlineColor: "white",
           outlineWidth: 2
         },
-        // .. and this is the hover style.
+        // Style for hovering over endpoints.
         connectorHoverStyle = {
           lineWidth: 4,
           strokeStyle: "#216477",
@@ -68,7 +74,7 @@ angular.module('vizualizeItApp')
           fillStyle: "#216477",
           strokeStyle: "#216477"
         },
-        // the definition of source endpoints (the small blue ones)
+        // General endpoint styles
         sourceEndpoint = {
           endpoint: "Dot",
           paintStyle: {
@@ -96,7 +102,6 @@ angular.module('vizualizeItApp')
             }]
           ]
         },
-        // the definition of target endpoints (will appear when the user drags a connection)
         targetEndpoint = {
           endpoint: "Dot",
           paintStyle: {
@@ -118,25 +123,36 @@ angular.module('vizualizeItApp')
             }]
           ]
         },
-        init = function(connection) {
+        init = function (connection) {
           connection.getOverlay("label").setLabel(connection.sourceId.substring(15) + "-" + connection.targetId.substring(15));
         };
 
+        // Method to automatically add endpoints for simple (1 input & 1 output)
+        // components.
         var addEndpoints = function (toId, sourceAnchors, targetAnchors) {
-            for (var i = 0; i < sourceAnchors.length; i++) {
-                var sourceUUID = toId + sourceAnchors[i];
-                globalInstance.addEndpoint("flowchart" + toId, sourceEndpoint, {
-                    anchor: sourceAnchors[i], uuid: sourceUUID
-                });
-            }
-            for (var j = 0; j < targetAnchors.length; j++) {
-                var targetUUID = toId + targetAnchors[j];
-                globalInstance.addEndpoint("flowchart" + toId, targetEndpoint, { anchor: targetAnchors[j], uuid: targetUUID });
-            }
+          // Iterate over all position to add endpoints (anchors).
+          for (var i = 0; i < sourceAnchors.length; i++) {
+            // Create a unique id for each endpoint.
+            var sourceUUID = toId + sourceAnchors[i];
+            globalInstance.addEndpoint("flowchart" + toId, sourceEndpoint, { anchor: sourceAnchors[i], uuid: sourceUUID
+            });
+          }
+          for (var j = 0; j < targetAnchors.length; j++) {
+            var targetUUID = toId + targetAnchors[j];
+            globalInstance.addEndpoint("flowchart" + toId, targetEndpoint, { anchor: targetAnchors[j], uuid: targetUUID });
+          }
         };
 
+        // Update logic.
         globalInstance.batch(function() {
+
+          // Save the graph before we reset.
+          var oldGraph = saveFlowchartData();
+
+          // Remove all components.
           globalInstance.reset();
+
+          // For each element in activeComponents, add endpoints.
           for (var i = 1; i < componentCount + 1; i++) {
             addEndpoints("Window" + i, ["RightMiddle"], ["LeftMiddle"]);
             document.getElementById("flowchartWindow"+i).addEventListener("dblclick", function (e) {
@@ -144,57 +160,70 @@ angular.module('vizualizeItApp')
               e.stopPropagation();
               componentDeletionCallback(i-2);
               componentCount--;
+              newConnectionCallback();
             });
           }
-          addEndpoints("Window0", [], ["LeftMiddle"]);
-          /*globalInstance.selectEndpoints().each(function(endpoint) {
-            console.log(endpoint);
-          });*/
 
-          // listen for new connections; initialise them the same way we initialise the connections at startup.
+          // Add Vertex, Fragment and Geometry endpoint for display component.
+          globalInstance.addEndpoint("flowchartWindow0", targetEndpoint, { anchor: "LeftMiddle", uuid: "Window0LeftMiddle" });
+
+          // Add back all of the old connections.
+          for (let edge of oldGraph.edges) {
+            globalInstance.connect({ uuids:[edge.fromUUID,edge.toUUID] });
+          }
+
+          // Set jsPlumb to listen for new connections between endpoints.
           globalInstance.bind("connection", function(connInfo, originalEvent) {
             init(connInfo.connection);
+            newConnectionCallback();
           });
 
-          // make all the window divs draggable
+          // Make all the window DOM elements draggable.
           globalInstance.draggable(jsPlumb.getSelector(".flowchart-demo .window"), {
             grid: [20, 20]
           });
 
-          //
-          // listen for clicks on connections, and offer to delete connections on click.
-          //
+          // Listen for clicks on connections, and offer to delete connections on
+          // click.
           globalInstance.bind("click", function(conn, originalEvent) {
             if (conn !== undefined) {
-              if (confirm("Delete connection from " + conn.sourceId + " to " + conn.targetId + "?")) {
-                globalInstance.detach(conn);
-              }
+              globalInstance.detach(conn);
             }
+            newConnectionCallback();
           });
-
-
         });
 
+        // Tell jsPlumb to re-render the flowchart.
         jsPlumb.fire("jsPlumbDemoLoaded", this.instance);
     };
 
+    // Method to add new components to flowchart.
     this.addComponent = function(component) {
       componentCount++;
       this.updateFlowchart();
+      // Relate the passed in component to a DOM element for the later graph
+      // traversal.
       component.domElementId = "flowchartWindow"+componentCount;
     };
 
+    // Method that returns all flowchart components and connections as a directed
+    // graph.
     this.saveFlowchartData = function () {
         var nodes = [];
         var edges = [];
+
+        // Iterate over all endpoints.
         globalInstance.selectEndpoints().each(function (endpoint) {
           var endpointNode;
+
+          // Go through all nodes, see if they belong to this endpoint.
           for (let node of nodes) {
             if (node.name == endpoint.element.id) {
               endpointNode = node;
             }
           }
-          // if endpoint's node is in there already
+          // Add the node to the list of nodes. If it's already in the list of
+          // nodes, add the endpoint to the appropriate list of endpoints.
           if (endpointNode !== undefined) {
             if (endpoint.isTarget) {
               endpointNode.inputs.push(endpoint.id);
@@ -213,9 +242,21 @@ angular.module('vizualizeItApp')
             nodes.push(node);
           }
         });
+
+        // Add all connections to an array of edges.
         globalInstance.getConnections().forEach(function (connection) {
-            edges.push({ from: connection.endpoints[0].id, to: connection.endpoints[1].id });
+          edges.push({
+            from: connection.endpoints[0].id,
+            to: connection.endpoints[1].id,
+            fromUUID: "Window"+connection.sourceId[connection.sourceId.length-1]+"RightMiddle",
+            toUUID: "Window"+connection.targetId[connection.targetId.length-1]+"LeftMiddle"
+          });
         });
         return { nodes: nodes, edges: edges };
       };
+      var saveFlowchartData = this.saveFlowchartData;
+
+      // Initialize jsPlumb.
+      globalInstance = setup();
+      this.updateFlowchart();
   });

@@ -24,7 +24,6 @@ Component.find({}).remove(function () {
             fullName: file+" "+componentFile,
             name: file,
             description: subComponent.description,
-            flowchartType: subComponent.flowchartType,
             dataType: subComponent.dataType,
             file: componentFile
           });

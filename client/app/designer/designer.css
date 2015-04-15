@@ -7,7 +7,7 @@
   width: 25%;
   height: 50%;
 
-  background-color: #aaa;
+  /*background-color: #aaa;*/
 
   float: left;
 }
@@ -31,23 +31,21 @@
 }
 
 .flowchart-demo .window {
-    border: 1px solid #346789;
-    box-shadow: 2px 2px 19px #aaa;
+    border: 1px solid; /*#346789;*/
+    /*box-shadow: 2px 2px 19px #aaa;
     -o-box-shadow: 2px 2px 19px #aaa;
     -webkit-box-shadow: 2px 2px 19px #aaa;
-    -moz-box-shadow: 2px 2px 19px #aaa;
+    -moz-box-shadow: 2px 2px 19px #aaa;*/
     -moz-border-radius: 0.5em;
     border-radius: 0.5em;
     opacity: 0.8;
     filter: alpha(opacity=80);
-    width: 80px;
-    height: 80px;
     line-height: 80px;
     cursor: pointer;
     text-align: center;
     z-index: 20;
     position: absolute;
-    background-color: #eeeeef;
+    /*background-color: #eeeeef;*/
     color: black;
     font-family: helvetica;
     padding: 0.5em;
@@ -85,6 +83,7 @@
 }
 
 .flowchart-demo .aLabel {
+    display:none;
     background-color: white;
     padding: 0.4em;
     font: 12px sans-serif;
@@ -112,6 +111,11 @@
 
 path, ._jsPlumb_endpoint {
     cursor: pointer;
+}
+
+.component-window {
+  width: 80px;
+  height: 80px;
 }
 
 .display-window {
