@@ -2,10 +2,10 @@
 
 angular.module('vizualizeItApp')
   .service('flowchartService', function() {
-    var componentCount = 0;
     var componentDeletionCallback = null;
     var newConnectionCallback = null;
     var globalInstance;
+    var localActiveComponents = [];
 
     // Method to initialize jsPlumb.
     var setup = function() {
@@ -122,7 +122,7 @@ angular.module('vizualizeItApp')
               cssClass: "endpointTargetLabel"
             }]
           ]
-        },
+        }, // Function that assigns labels. Necessary, but removed later in CSS.
         init = function (connection) {
           connection.getOverlay("label").setLabel(connection.sourceId.substring(15) + "-" + connection.targetId.substring(15));
         };
@@ -134,12 +134,12 @@ angular.module('vizualizeItApp')
           for (var i = 0; i < sourceAnchors.length; i++) {
             // Create a unique id for each endpoint.
             var sourceUUID = toId + sourceAnchors[i];
-            globalInstance.addEndpoint("flowchart" + toId, sourceEndpoint, { anchor: sourceAnchors[i], uuid: sourceUUID
+            globalInstance.addEndpoint(toId, sourceEndpoint, { anchor: sourceAnchors[i], uuid: sourceUUID
             });
           }
           for (var j = 0; j < targetAnchors.length; j++) {
             var targetUUID = toId + targetAnchors[j];
-            globalInstance.addEndpoint("flowchart" + toId, targetEndpoint, { anchor: targetAnchors[j], uuid: targetUUID });
+            globalInstance.addEndpoint(toId, targetEndpoint, { anchor: targetAnchors[j], uuid: targetUUID });
           }
         };
 
@@ -153,13 +153,17 @@ angular.module('vizualizeItApp')
           globalInstance.reset();
 
           // For each element in activeComponents, add endpoints.
-          for (var i = 1; i < componentCount + 1; i++) {
-            addEndpoints("Window" + i, ["RightMiddle"], ["LeftMiddle"]);
-            document.getElementById("flowchartWindow"+i).addEventListener("dblclick", function (e) {
-              globalInstance.remove(e.srcElement);
+          for (let component of localActiveComponents) {
+            addEndpoints(component.domElementId, ["RightMiddle"], ["LeftMiddle"]);
+            document.getElementById(component.domElementId).addEventListener("dblclick", function (e) {
+              if (e.processedByVisualizeIt == true) {
+                return;
+              }
+              e.processedByVisualizeIt = true;
               e.stopPropagation();
-              componentDeletionCallback(i-2);
-              componentCount--;
+
+              globalInstance.remove(e.srcElement);
+              componentDeletionCallback(e.srcElement.id);
               newConnectionCallback();
             });
           }
@@ -197,13 +201,14 @@ angular.module('vizualizeItApp')
         jsPlumb.fire("jsPlumbDemoLoaded", this.instance);
     };
 
-    // Method to add new components to flowchart.
-    this.addComponent = function(component) {
-      componentCount++;
+    // Method to add new components to flowchart. Note that in this method,
+    // component is actually a reference to the array element in designerController's
+    // scope.flowchart.activeComponents.
+    this.syncStructures = function(activeComponents) {
+      localActiveComponents = activeComponents;
       this.updateFlowchart();
       // Relate the passed in component to a DOM element for the later graph
       // traversal.
-      component.domElementId = "flowchartWindow"+componentCount;
     };
 
     // Method that returns all flowchart components and connections as a directed
@@ -248,8 +253,8 @@ angular.module('vizualizeItApp')
           edges.push({
             from: connection.endpoints[0].id,
             to: connection.endpoints[1].id,
-            fromUUID: "Window"+connection.sourceId[connection.sourceId.length-1]+"RightMiddle",
-            toUUID: "Window"+connection.targetId[connection.targetId.length-1]+"LeftMiddle"
+            fromUUID: "flowchartWindow"+connection.sourceId[connection.sourceId.length-1]+"RightMiddle",
+            toUUID: "flowchartWindow"+connection.targetId[connection.targetId.length-1]+"LeftMiddle"
           });
         });
         return { nodes: nodes, edges: edges };

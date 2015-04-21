@@ -1,10 +1,33 @@
 'use strict';
 
 angular.module('vizualizeItApp')
-  .service('previewService', function () {
-    // Get ready. Quick and dirty run through the WebGL system. TODO: This
-    // monolithic method will be refactored into smaller chunks.
-    this.render = function (geom, vshader, fshader) {
+  .service('previewService', function (timeService) {
+    var storedGeomData = null;
+    var storedFragmentData = null;
+    var storedVertexData = null;
+    var storedUniformMap = null;
+    //var animate;
+
+    this.mutePreview = function () {
+      $("#preview").hide();
+    }
+
+    this.showPreview = function () {
+      $("#preview").show();
+    }
+
+    this.render = function (newUniformMap, newGeomData, newVshaderData, newFshaderData) {
+      if (newGeomData !== undefined) {
+        storedFragmentData = newFshaderData;
+        storedGeomData = newGeomData;
+        storedVertexData = newVshaderData;
+        storedUniformMap = newUniformMap;
+      }
+      var fshader = storedFragmentData;
+      var geom = storedGeomData;
+      var vshader = storedVertexData;
+      var uniformMap = newUniformMap;
+
       // Grab a reference to the preveiw canvas DOM element.
       var cvs = document.getElementById("preview");
 
@@ -48,9 +71,17 @@ angular.module('vizualizeItApp')
       GL.attachShader(SHADER_PROGRAM, shader_fragment);
       GL.linkProgram(SHADER_PROGRAM);
 
+      // Print some debug info
+      //console.log(GL.getShaderInfoLog(SHADER_PROGRAM));
+      console.log(GL.getProgramInfoLog(SHADER_PROGRAM));
+
       // Set attributes for shaders.
       //var _color = GL.getAttribLocation(SHADER_PROGRAM, "color");
       var _position = GL.getAttribLocation(SHADER_PROGRAM, "position");
+      //var _frameCount = GL.getUniformLocation(SHADER_PROGRAM, "frameCount");
+      for (let uniformName in uniformMap) {
+        uniformMap[uniformName].location = GL.getUniformLocation(SHADER_PROGRAM, uniformName);
+      }
 
       // Set attributes for geometry.
       //GL.enableVertexAttribArray(_color);
@@ -83,8 +114,7 @@ angular.module('vizualizeItApp')
       GL.clearColor(0.0, 0.0, 0.0, 0.0);
 
       // Function to render geometry to canvas.
-      var animate = function() {
-
+      var animate = function () {
         // Set size of OpenGl viewport. Clear pixel buffer.
         GL.viewport(0.0, 0.0, cvs.width, cvs.height);
         GL.clear(GL.COLOR_BUFFER_BIT);
@@ -93,8 +123,13 @@ angular.module('vizualizeItApp')
         GL.bindBuffer(GL.ARRAY_BUFFER, MESH_VERTEX);
 
         // Prepare attribute (position and color) data for drawing.
-        GL.vertexAttribPointer(_position, 3, GL.FLOAT, false,4*(3),0) ;
-        //GL.vertexAttribPointer(_color, 3, GL.FLOAT, false,4*(2+3),2*4) ;
+        GL.vertexAttribPointer(_position, 3, GL.FLOAT, false,4*(3),0);
+        //GL.uniform1f(_frameCount, timeService.getElapsedFrames());
+        var uniformNames = Object.keys(uniformMap);
+        for (var i = 0; i < uniformNames.length; i++) {
+          GL.uniform1f(uniformMap[uniformNames[i]].location, uniformMap[uniformNames[i]].valueFunction());
+        }
+        //GL.vertexAttribPointer(_color, 3, GL.FLOAT, false,4*(2+3),2*4);
 
         // Mark face data so OpenGL can draw mesh faces.
         GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, MESH_FACES);
@@ -106,7 +141,6 @@ angular.module('vizualizeItApp')
         // Render this frame again when the browser says it's OK to do so.
         window.requestAnimationFrame(animate);
       };
-
       animate();
     };
   });

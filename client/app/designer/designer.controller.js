@@ -2,10 +2,27 @@
 
 // Module to keep track of our designer page.
 angular.module('vizualizeItApp')
-  .controller('DesignerCtrl', function ($scope,componentLoaderService,previewService,flowchartService, shaderCompileService) {
+  .controller('DesignerCtrl', [
+      '$scope',
+      'componentLoaderService',
+      'previewService',
+      'flowchartService',
+      'shaderCompileService',
+      'timeService',
+    function (
+      $scope,
+      componentLoaderService,
+      previewService,
+      flowchartService,
+      shaderCompileService,
+      timeService
+      ) {
     $scope.missingComponents = ["Geometry", "Vertex Shader", "Fragment Shader", "Blending Mode"];
     $scope.blendModes = ["uniform mix","difference", "solid orange"];
+    var nextFreeComponentId = 100;
+    var toolPaneInitialized = false;
     $scope.selectedBlendMode = "";
+
 
     // Initially, get the list of components from the server. Then setup our page
     // and start the preview with a blank setup.
@@ -31,38 +48,51 @@ angular.module('vizualizeItApp')
       $scope.flowchart.items = componentList.map(function (flowchartComponentHash) {
         return new FlowchartComponent(flowchartComponentHash);
       });
-      flowchartService.registerComponentDeletionCallback(function (index) {
-        $scope.flowchart.activeComponents.splice(index, 1);
+
+      $scope.$on('ngRepeatFinished', function(ngRepeatFinishedEvent) {
+        // Add click listeners to tool pane items
+        if (toolPaneInitialized == false) {
+          for (let i = 0; i < $scope.flowchart.items.length; i++) {
+            document.getElementById("item"+i).addEventListener("click", function () {
+              var component = new FlowchartComponent($scope.flowchart.items[i].hash);
+              $scope.flowchart.placeNewComponent(component);
+              flowchartService.syncStructures($scope.flowchart.activeComponents);
+            });
+          }
+        }
       });
+
+      // Remove the appropriate element from activeComponents when the flowchart
+      // detects a user deleting a node.
+      flowchartService.registerComponentDeletionCallback(function (elementId) {
+        for (let component of $scope.flowchart.activeComponents) {
+          if (component.domElementId == elementId) {
+            var deletionIndex = $scope.flowchart.activeComponents.indexOf(component);
+            $scope.flowchart.activeComponents.splice(deletionIndex,1);
+          }
+        }
+      });
+
+      // Render the preview when a new connection is made
       flowchartService.registerNewConnectionCallback(function () {
         $scope.loadComponentData();
       });
+
+      // Set the controller to render the preview when the blend mode changes.
       $scope.$watch('selectedBlendMode', function () {
         $scope.loadComponentData();
       });
 
       // Print out the list of items in our system.
       console.log($scope.flowchart.items);
-
-      // Set our page to listen for keypresses with jQuery.
-      $(document).keypress(function (e) {
-        //console.log(e.keyCode);
-        if (e.keyCode == 13) { // Enter
-          //$scope.loadComponentData();
-          //$scope.shouldRender = !$scope.shouldRender;
-        } else {
-          var index = e.keyCode-49; // Hopefully the number keys
-          // Clone the component selected from our list, add it to our flowchart.
-          var component = new FlowchartComponent($scope.flowchart.items[index].hash);
-          $scope.flowchart.placeNewComponent(component);
-          flowchartService.addComponent(component);
-        }
-      });
     });
 
-    // Add a component to flowchart.
+    // Add a component to flowchart. Keep DOM element/component IDs unique so that
+    // we can delete and add components without confusing new and old components.
     var flowchartPlaceNewComponent = function (component) {
       $scope.$apply(function () {
+        component.domElementId = "flowchartWindow"+nextFreeComponentId;
+        nextFreeComponentId++;
         $scope.flowchart.activeComponents.push(component);
       });
     }
@@ -137,6 +167,8 @@ angular.module('vizualizeItApp')
           vertexComponents.push(exploreComponent);
         } else if (exploreComponent.hash.dataType == "fragment") {
           fragmentComponents.push(exploreComponent);
+        } else if (exploreComponent.hash.dataType == "uniform") {
+          $scope.outputComponentOf(exploreComponent, componentGraph).hash.uniformComponent = exploreComponent;
         }
 
         // Push all adjacent nodes onto stack
@@ -160,25 +192,25 @@ angular.module('vizualizeItApp')
         if ($scope.selectedBlendMode == "") {
           $scope.missingComponents.push("Blending Mode");
         }
+        previewService.mutePreview();
         return;
       }
+      previewService.showPreview();
 
-      var geometryText = $scope.compileComponents(geometryComponents);
-      var vertexText = $scope.compileComponents(vertexComponents);
-      var fragmentText = $scope.compileComponents(fragmentComponents);
+      var geometryText = PlyReader().parse(geometryComponents[0].hash.text);
+      var vertexText = shaderCompileService.compileVertexShader(vertexComponents, fragmentComponents);
+      var fragmentText = shaderCompileService.compileFragmentShader(fragmentComponents, $scope.selectedBlendMode);
 
-      previewService.render(geometryText,vertexText,fragmentText);
-    };
-
-    $scope.compileComponents = function (componentList) {
-      if (componentList[0].hash.dataType == "geometry") {
-        // Combine geometry? Submit to compileShaderService?
-        return PlyReader().parse(componentList[0].hash.text);
-      } else if (componentList[0].hash.dataType == "vertex") {
-        return componentList[0].hash.text;
+      var uniformMap = {};
+      for (var shader of fragmentComponents) {
+        if (shader.hash.uniformComponent !== undefined) {
+          uniformMap[shader.hash.uniformComponent.name] = {
+            location: null,
+            valueFunction: function () {return eval(shader.hash.uniformComponent.hash.text);}
+          }
+        }
       }
-      // Submit list of shaders, ordered, to compileShaderService
-      return shaderCompileService.compile(componentList, $scope.selectedBlendMode);
+      previewService.render(uniformMap,geometryText,vertexText,fragmentText);
     };
 
     $scope.inputComponentsTo = function (component, graph) {
@@ -200,7 +232,25 @@ angular.module('vizualizeItApp')
           }
         }
       }
-
       return nodes;
     };
-  });
+
+    $scope.outputComponentOf = function (component, graph) {
+      // Iterate over all input endpoints to our component
+      for (let outputEndpoint of component.outputs) {
+        // Iterate over all edges
+        for (let edge of graph.edges) {
+          // If edge's to endpoint is our input, get the edge's from element
+          if (edge.from == outputEndpoint) {
+            for (let node of graph.nodes) {
+              for (let inputEndpoint of node.inputs) {
+                if (inputEndpoint == edge.to) {
+                  return node;
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+  }]);

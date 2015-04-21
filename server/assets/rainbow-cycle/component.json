@@ -4,14 +4,14 @@
     {
       "flowchartType": "filter",
       "dataType": "fragment",
-      "description": "Horiz Grad",
-      "files": ["fragmentHoriz.shader"]
+      "description": "Smooth Rainbow",
+      "files": ["fragment.shader"]
     },
     {
       "flowchartType": "filter",
       "dataType": "fragment",
-      "description": "Vert Grad",
-      "files": ["fragmentVert.shader"]
+      "description": "Choppy Rainbow",
+      "files": ["fragmentChop.shader"]
     }
   ]
 }

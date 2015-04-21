@@ -9,7 +9,8 @@ var ComponentSchema = new Schema({
   description: String,
   file: String,
   dataType: String,
-  active: Boolean
+  active: Boolean,
+  takesUniform: Boolean
 });
 
 module.exports = mongoose.model('Component', ComponentSchema);

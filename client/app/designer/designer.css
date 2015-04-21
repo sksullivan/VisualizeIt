@@ -122,3 +122,19 @@ path, ._jsPlumb_endpoint {
   left: 90%;
   top: 20%;
 }
+
+.fragment {
+  background-color: #f5f;
+}
+
+.vertex {
+  background-color: #ff5;
+}
+
+.geometry {
+  background-color: #5ff;
+}
+
+.uniform {
+  background-color: #55f;
+}

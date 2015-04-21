@@ -1,0 +1,11 @@
+{
+  "subComponents":
+  [
+    {
+      "flowchartType": "uniform",
+      "dataType": "uniform",
+      "description": "+1 Per Frame",
+      "files": ["uniform.js"]
+    }
+  ]
+}

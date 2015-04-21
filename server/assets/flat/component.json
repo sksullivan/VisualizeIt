@@ -4,19 +4,19 @@
     {
       "flowchartType": "generator",
       "dataType": "geometry",
-      "description": "Basic, flat rectangle geometry generator.",
+      "description": "Fill Rect",
       "files": ["geom.ply"]
     },
     {
       "flowchartType": "filter",
       "dataType": "vertex",
-      "description": "Simplest vertex shader.",
+      "description": "Static Vertex",
       "files": ["vertex.shader"]
     },
     {
       "flowchartType": "filter",
       "dataType": "fragment",
-      "description": "Simplest fragment shader.",
+      "description": "Blank Shader",
       "files": ["fragment.shader"]
     }
   ]
