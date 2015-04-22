@@ -6,7 +6,7 @@ void main(void) {
 
   //@code
   tempPixel = vec4(0, gl_FragCoord.y/200., 0, 1.);
-  //@end
+  //@endcode
 
   gl_FragCoord = tempPixel;
 }

@@ -4,8 +4,26 @@
     {
       "flowchartType": "filter",
       "dataType": "fragment",
-      "description": "Vert Bars",
+      "description": "Static Vert Bars",
       "files": ["fragment.shader"]
+    },
+    {
+      "flowchartType": "filter",
+      "dataType": "fragment",
+      "description": "Scroll Vert Bars",
+      "files": ["fragmentVert.shader"]
+    },
+    {
+      "flowchartType": "filter",
+      "dataType": "fragment",
+      "description": "Scroll Horiz Bars",
+      "files": ["fragmentHoriz.shader"]
+    },
+    {
+      "flowchartType": "filter",
+      "dataType": "fragment",
+      "description": "Static Diagonal Bars",
+      "files": ["fragmentDiag.shader"]
     }
   ]
 }

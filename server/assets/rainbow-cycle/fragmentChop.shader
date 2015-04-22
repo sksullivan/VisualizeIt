@@ -3,11 +3,18 @@ varying vec3 vColor;
 
 void main(void) {
 
+  //@vars
+  int r;
+  int g;
+  int b;
+	int step;
+  //@endvars
+
   //@code
-  int r = 0;
-  int g = 0;
-  int b = 0;
-	int step = int(mod(localUniform*255.0,255.0*6.0));
+  r = 0;
+  g = 0;
+  b = 0;
+  step = int(mod(localUniform*255.0,255.0*6.0));
 	if (step < 255) {
     r = 255;
     g = step;
@@ -28,5 +35,5 @@ void main(void) {
     r = 255;
   }
   tempPixel = vec4(float(r)/255.0, float(g)/255.0, float(b)/255.0, 1.0);
-  //@end
+  //@endcode
 }

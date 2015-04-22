@@ -6,7 +6,7 @@ rendering our flowchart and one for rendering our visualizer. -->
   </ol>
   <ul>
     Need:<br>
-    <li ng-repeat="component in missingComponents" >{{component}}</li>
+    <li ng-repeat="component in missingComponents" class="{{component.dataType}}" >{{component.name}}</li>
   </ul>
   &nbsp&nbsp&nbspShader blend mode:
   <select ng-model="selectedBlendMode">
@@ -15,7 +15,7 @@ rendering our flowchart and one for rendering our visualizer. -->
 </div>
 <!--<canvas id="flowchart" class="top-pane" ></canvas>-->
 <div class="demo flowchart-demo top-pane" id="flowchart-demo">
-  <div class="window component-window display-window" id="flowchartWindow0"><strong>DISPLAY</strong><br/><br/></div>
-  <div class="window component-window {{component.hash.dataType}}" id="{{component.domElementId}}" ng-repeat="component in flowchart.activeComponents"><strong>{{component.hash.description}}</strong><br/><br/></div>
+  <div class="window component-window display-window" id="flowchartWindow0"><strong>DISPLAY</strong></div>
+  <div class="window component-window {{component.hash.dataType}}" id="{{component.domElementId}}" ng-repeat="component in flowchart.activeComponents"><strong>{{component.hash.description}}</strong></div>
 </div>
 <canvas id="preview" class="bottom-pane"></canvas>

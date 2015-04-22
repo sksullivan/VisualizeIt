@@ -22,6 +22,18 @@ angular.module('vizualizeItApp')
       computedShaderLines.push("  vec4 tempPixel;");
       computedShaderLines.push("  float localUniform;");
 
+      // For all shaders, add variable declarations if not already declared.
+      var declaredVariableLines = [];
+      for (let shader of shaders) {
+        var shaderVariableDeclarationLines = this.getVariableDeclarations(shader);
+        for (let line of shaderVariableDeclarationLines) {
+          if (declaredVariableLines.indexOf(line) == -1) {
+            computedShaderLines.push(line);
+            declaredVariableLines.push(line);
+          }
+        }
+      }
+
       // For all shaders, extract code, calculate offset and weight. Add code to
       // computed shader, and add line to save caluclated pixel color to array.
       for (let shader of shaders) {
@@ -85,25 +97,37 @@ angular.module('vizualizeItApp')
       return shaders[0].hash.text;
     }
 
-    // Looks for "//@code" and "//@end" tags, returns line between.
+    // Looks for "//@code" and "//@end" tags, returns lines between.
     this.getCode = function (shader) {
+      return this.getTextBetweenTags(shader, "//@code", "//@endcode");
+    };
+
+    // Looks for "//@vars" and "//@end" tags, returns lines between.
+    this.getVariableDeclarations = function (shader) {
+      return this.getTextBetweenTags(shader, "//@vars", "//@endvars");
+    };
+
+    this.getTextBetweenTags = function (shader, startTag, endTag) {
       var shaderLines = shader.hash.text.split("\n");
+      var codeStartIndex, codeEndIndex;
       for (let line of shaderLines) {
-        var codeStartIndex, codeEndIndex;
-        if (line.indexOf("//@code") > -1) {
+        if (line.indexOf(startTag) > -1) {
           codeStartIndex = shaderLines.indexOf(line)+1;
         }
-        if (line.indexOf("//@end") > -1) {
+        if (line.indexOf(endTag) > -1) {
           codeEndIndex = shaderLines.indexOf(line);
         }
       }
+      if (codeStartIndex === undefined || codeEndIndex === undefined) {
+        return [];
+      }
       return shaderLines.slice(codeStartIndex,codeEndIndex);
-    };
+    }
 
     // Gets array of weights based on blend mode.
     this.getBlendWeights = function (shaderCount, blendMode) {
       var weights = new Array(shaderCount);
-      if (blendMode == "uniform mix" || blendMode == "cycling") {
+      if (blendMode == "uniform mix") {
         for (var i = 0; i < shaderCount; i++) {
           weights[i] = 1/shaderCount;
         }
@@ -115,6 +139,14 @@ angular.module('vizualizeItApp')
       } else if (blendMode == "solid orange") {
         for (var i = 0; i < shaderCount; i++) {
           weights[i] = 0;
+        }
+      } else if (blendMode == "solid orange") {
+        for (var i = 0; i < shaderCount; i++) {
+          weights[i] = 0;
+        }
+      } else if (blendMode == "blue shift") {
+        for (var i = 0; i < shaderCount; i++) {
+          weights[i] = 1/shaderCount-0.1;
         }
       }
       return weights;
@@ -136,6 +168,10 @@ angular.module('vizualizeItApp')
       } else if (blendMode == "solid orange") {
         for (var i = 0; i < shaderCount; i++) {
           offsets[i] = [1/shaderCount,.5/shaderCount,0,1/shaderCount];
+        }
+      } else if (blendMode == "blue shift") {
+        for (var i = 0; i < shaderCount; i++) {
+          offsets[i] = [0,0,1/shaderCount,0];
         }
       }
       return offsets;

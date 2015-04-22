@@ -139,6 +139,7 @@ angular.module('vizualizeItApp')
           }
           for (var j = 0; j < targetAnchors.length; j++) {
             var targetUUID = toId + targetAnchors[j];
+            console.log(targetUUID);
             globalInstance.addEndpoint(toId, targetEndpoint, { anchor: targetAnchors[j], uuid: targetUUID });
           }
         };
@@ -161,7 +162,6 @@ angular.module('vizualizeItApp')
               }
               e.processedByVisualizeIt = true;
               e.stopPropagation();
-
               globalInstance.remove(e.srcElement);
               componentDeletionCallback(e.srcElement.id);
               newConnectionCallback();
@@ -169,11 +169,11 @@ angular.module('vizualizeItApp')
           }
 
           // Add Vertex, Fragment and Geometry endpoint for display component.
-          globalInstance.addEndpoint("flowchartWindow0", targetEndpoint, { anchor: "LeftMiddle", uuid: "Window0LeftMiddle" });
+          globalInstance.addEndpoint("flowchartWindow0", targetEndpoint, { anchor: "LeftMiddle", uuid: "flowchartWindow0LeftMiddle" });
 
           // Add back all of the old connections.
           for (let edge of oldGraph.edges) {
-            globalInstance.connect({ uuids:[edge.fromUUID,edge.toUUID] });
+            globalInstance.connect({ uuids:[edge.fromUUID, edge.toUUID] });
           }
 
           // Set jsPlumb to listen for new connections between endpoints.
@@ -203,12 +203,10 @@ angular.module('vizualizeItApp')
 
     // Method to add new components to flowchart. Note that in this method,
     // component is actually a reference to the array element in designerController's
-    // scope.flowchart.activeComponents.
+    // $scope.flowchart.activeComponents.
     this.syncStructures = function(activeComponents) {
       localActiveComponents = activeComponents;
       this.updateFlowchart();
-      // Relate the passed in component to a DOM element for the later graph
-      // traversal.
     };
 
     // Method that returns all flowchart components and connections as a directed
@@ -253,8 +251,14 @@ angular.module('vizualizeItApp')
           edges.push({
             from: connection.endpoints[0].id,
             to: connection.endpoints[1].id,
-            fromUUID: "flowchartWindow"+connection.sourceId[connection.sourceId.length-1]+"RightMiddle",
-            toUUID: "flowchartWindow"+connection.targetId[connection.targetId.length-1]+"LeftMiddle"
+            fromUUID: connection.endpoints[0].anchor.elementId+connection.endpoints[0].anchor.type,
+            toUUID: connection.endpoints[1].anchor.elementId+connection.endpoints[1].anchor.type
+          });
+          console.log({
+            from: connection.endpoints[0].id,
+            to: connection.endpoints[1].id,
+            fromUUID: connection.endpoints[0].anchor.elementId+connection.endpoints[0].anchor.type,
+            toUUID: connection.endpoints[1].anchor.elementId+connection.endpoints[1].anchor.type
           });
         });
         return { nodes: nodes, edges: edges };

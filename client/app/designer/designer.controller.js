@@ -17,8 +17,8 @@ angular.module('vizualizeItApp')
       shaderCompileService,
       timeService
       ) {
-    $scope.missingComponents = ["Geometry", "Vertex Shader", "Fragment Shader", "Blending Mode"];
-    $scope.blendModes = ["uniform mix","difference", "solid orange"];
+    $scope.missingComponents = [{name: "Geometry", dataType: "geometry"}, {name: "Vertex Shader", dataType: "vertex"}, {name: "Fragment Shader", dataType: "fragment"}, {name: "Blending Mode", dataType: "none"}];
+    $scope.blendModes = ["uniform mix","difference", "solid orange", "blue shift"];
     var nextFreeComponentId = 100;
     var toolPaneInitialized = false;
     $scope.selectedBlendMode = "";
@@ -181,16 +181,16 @@ angular.module('vizualizeItApp')
       $scope.missingComponents = [];
       if (geometryComponents.length == 0 || vertexComponents.length == 0 || fragmentComponents.length == 0 || $scope.selectedBlendMode == "") {
         if (geometryComponents.length == 0) {
-          $scope.missingComponents.push("Geometry");
+          $scope.missingComponents.push({name: "Geometry", dataType: "geometry"});
         }
         if (vertexComponents.length == 0) {
-          $scope.missingComponents.push("Vertex Shader");
+          $scope.missingComponents.push({name: "Vertex Shader", dataType: "vertex"});
         }
         if (fragmentComponents.length == 0) {
-          $scope.missingComponents.push("Fragment Shader");
+          $scope.missingComponents.push({name: "Fragment Shader", dataType: "fragment"});
         }
         if ($scope.selectedBlendMode == "") {
-          $scope.missingComponents.push("Blending Mode");
+          $scope.missingComponents.push({name: "Blending Mode", dataType: "none"});
         }
         previewService.mutePreview();
         return;
