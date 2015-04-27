@@ -24,10 +24,9 @@ angular.module('vizualizeItApp')
     var nextFreeComponentId = 100;
     var toolPaneInitialized = false;
     $scope.selectedBlendMode = "";
-    
+
     audioService.init();
     audioService.setCanvas(document.getElementById("analysis"));
-    audioService.analyze();
 
     // Initially, get the list of components from the server. Then setup our page
     // and start the preview with a blank setup.
@@ -65,6 +64,11 @@ angular.module('vizualizeItApp')
             });
           }
         }
+      });
+
+      document.getElementById("playButton").addEventListener("click", function () {
+        alert("replaying");
+        audioService.replay();
       });
 
       // Remove the appropriate element from activeComponents when the flowchart

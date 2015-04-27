@@ -1,0 +1,29 @@
+{
+  "subComponents":
+  [
+    {
+      "flowchartType": "uniform",
+      "dataType": "uniform",
+      "description": "Vary with Lows",
+      "files": ["uniformLow.js"]
+    },
+    {
+      "flowchartType": "uniform",
+      "dataType": "uniform",
+      "description": "Vary with Mids",
+      "files": ["uniformMid.js"]
+    },
+    {
+      "flowchartType": "uniform",
+      "dataType": "uniform",
+      "description": "Vary with Highs",
+      "files": ["uniformHigh.js"]
+    },
+    {
+      "flowchartType": "uniform",
+      "dataType": "uniform",
+      "description": "+1 Per Beat",
+      "files": ["uniformBeat.js"]
+    }
+  ]
+}
