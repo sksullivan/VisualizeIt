@@ -4,14 +4,25 @@
 
 'use strict';
 
+var fs = require('fs');
+
 var errors = require('./components/errors');
 
 module.exports = function(app) {
 
   // Insert routes below
+  app.use('/api/songs', require('./api/song'));
   app.use('/api/components', require('./api/component'));
   app.use('/api/things', require('./api/thing'));
   
+  app.route('/music')
+    .get(function (req,res) {
+      res.set({'Content-Type': 'audio/mpeg'});
+      console.log(__dirname);
+      var readStream = fs.createReadStream(__dirname+'/assets/music/beacon-short.mp3');
+      readStream.pipe(res);
+    });
+
   // All undefined asset or api routes should return a 404
   app.route('/:url(api|auth|components|app|bower_components|assets)/*')
    .get(errors[404]);

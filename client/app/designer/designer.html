@@ -18,4 +18,5 @@ rendering our flowchart and one for rendering our visualizer. -->
   <div class="window component-window display-window" id="flowchartWindow0"><strong>DISPLAY</strong></div>
   <div class="window component-window {{component.hash.dataType}}" id="{{component.domElementId}}" ng-repeat="component in flowchart.activeComponents"><strong>{{component.hash.description}}</strong></div>
 </div>
-<canvas id="preview" class="bottom-pane"></canvas>
+<canvas id="preview" class="bottom-pane" height="900"></canvas>
+<canvas id="analysis" style="width: 100%; height: 50%;" width="1440" height="900"></canvas>

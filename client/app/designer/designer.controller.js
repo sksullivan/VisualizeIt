@@ -9,20 +9,25 @@ angular.module('vizualizeItApp')
       'flowchartService',
       'shaderCompileService',
       'timeService',
+      'audioService',
     function (
       $scope,
       componentLoaderService,
       previewService,
       flowchartService,
       shaderCompileService,
-      timeService
+      timeService,
+      audioService
       ) {
     $scope.missingComponents = [{name: "Geometry", dataType: "geometry"}, {name: "Vertex Shader", dataType: "vertex"}, {name: "Fragment Shader", dataType: "fragment"}, {name: "Blending Mode", dataType: "none"}];
     $scope.blendModes = ["uniform mix","difference", "solid orange", "blue shift"];
     var nextFreeComponentId = 100;
     var toolPaneInitialized = false;
     $scope.selectedBlendMode = "";
-
+    
+    audioService.init();
+    audioService.setCanvas(document.getElementById("analysis"));
+    audioService.analyze();
 
     // Initially, get the list of components from the server. Then setup our page
     // and start the preview with a blank setup.
