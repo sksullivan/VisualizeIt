@@ -87,7 +87,7 @@ angular.module('vizualizeItApp')
         that.source.connect(that.analyzerNode);
         that.analyzerNode.connect(that.context.destination);
         that.buffer = buffer;
-        that.source.start(that.context.currentTime);
+        //that.source.start(that.context.currentTime);
         that.analyze();
       });
     };

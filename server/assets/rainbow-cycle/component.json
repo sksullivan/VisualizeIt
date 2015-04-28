@@ -3,13 +3,13 @@
   [
     {
       "flowchartType": "filter",
-      "dataType": "fragment",
+      "dataType": "fragment-timed",
       "description": "Smooth Rainbow",
       "files": ["fragment.shader"]
     },
     {
       "flowchartType": "filter",
-      "dataType": "fragment",
+      "dataType": "fragment-timed",
       "description": "Choppy Rainbow",
       "files": ["fragmentChop.shader"]
     }

@@ -174,10 +174,17 @@ angular.module('vizualizeItApp')
           geometryComponents.push(exploreComponent);
         } else if (exploreComponent.hash.dataType == "vertex") {
           vertexComponents.push(exploreComponent);
-        } else if (exploreComponent.hash.dataType == "fragment") {
+        } else if (exploreComponent.hash.dataType == "fragment" || exploreComponent.hash.dataType == "fragment-timed") {
           fragmentComponents.push(exploreComponent);
+          exploreComponent.hash.uniformComponent = null;
+          console.log(exploreComponent);
         } else if (exploreComponent.hash.dataType == "uniform") {
-          $scope.outputComponentOf(exploreComponent, componentGraph).hash.uniformComponent = exploreComponent;
+          var outputNodeName = $scope.outputComponentOf(exploreComponent, componentGraph).name;
+          for (let shader of fragmentComponents) {
+            if (shader.name == outputNodeName) {
+              shader.hash.uniformComponent = exploreComponent;
+            }
+          }
         }
 
         // Push all adjacent nodes onto stack
@@ -200,6 +207,13 @@ angular.module('vizualizeItApp')
         }
         if ($scope.selectedBlendMode == "") {
           $scope.missingComponents.push({name: "Blending Mode", dataType: "none"});
+        }
+        for (let fragShader of fragmentComponents) {
+          if (fragShader.hash.dataType == "fragment-timed") {
+            if (fragShader.hash.uniformComponent === undefined || fragShader.hash.uniformComponent === null) {
+              $scope.missingComponents.push({name: "Uniform for Shader", dataType: "uniform"});
+            }
+          }
         }
         previewService.mutePreview();
         return;

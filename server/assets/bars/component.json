@@ -9,13 +9,13 @@
     },
     {
       "flowchartType": "filter",
-      "dataType": "fragment",
+      "dataType": "fragment-timed",
       "description": "Scroll Vert Bars",
       "files": ["fragmentVert.shader"]
     },
     {
       "flowchartType": "filter",
-      "dataType": "fragment",
+      "dataType": "fragment-timed",
       "description": "Scroll Horiz Bars",
       "files": ["fragmentHoriz.shader"]
     },

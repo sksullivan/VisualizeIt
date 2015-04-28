@@ -12,6 +12,7 @@ angular.module('vizualizeItApp')
       // Add shader boilerplate, declare pixel values array and temp vector.
       computedShaderLines.push("precision mediump float;");
       computedShaderLines.push("varying vec3 vColor;");
+      console.log(shaders);
       for (let shader of shaders) {
         if (shader.hash.uniformComponent !== undefined) {
           computedShaderLines.push("uniform float "+shader.hash.uniformComponent.name+";");

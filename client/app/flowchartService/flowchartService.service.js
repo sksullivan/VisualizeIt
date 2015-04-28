@@ -139,7 +139,6 @@ angular.module('vizualizeItApp')
           }
           for (var j = 0; j < targetAnchors.length; j++) {
             var targetUUID = toId + targetAnchors[j];
-            console.log(targetUUID);
             globalInstance.addEndpoint(toId, targetEndpoint, { anchor: targetAnchors[j], uuid: targetUUID });
           }
         };
@@ -249,12 +248,6 @@ angular.module('vizualizeItApp')
         // Add all connections to an array of edges.
         globalInstance.getConnections().forEach(function (connection) {
           edges.push({
-            from: connection.endpoints[0].id,
-            to: connection.endpoints[1].id,
-            fromUUID: connection.endpoints[0].anchor.elementId+connection.endpoints[0].anchor.type,
-            toUUID: connection.endpoints[1].anchor.elementId+connection.endpoints[1].anchor.type
-          });
-          console.log({
             from: connection.endpoints[0].id,
             to: connection.endpoints[1].id,
             fromUUID: connection.endpoints[0].anchor.elementId+connection.endpoints[0].anchor.type,
