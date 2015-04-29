@@ -71,6 +71,10 @@ angular.module('vizualizeItApp')
         audioService.replay();
       });
 
+      document.getElementById("audio_file").onchange = function () {
+        audioService.setSound(this.files[0]);
+      }
+
       // Remove the appropriate element from activeComponents when the flowchart
       // detects a user deleting a node.
       flowchartService.registerComponentDeletionCallback(function (elementId) {

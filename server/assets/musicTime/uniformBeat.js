@@ -1,3 +1,5 @@
 (function () {
-  return timeService.getElapsedFrames();
+  //console.log(audioService.getValue("beat"));
+
+  return audioService.getValue("beat");
 })();

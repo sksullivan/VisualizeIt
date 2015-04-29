@@ -18,7 +18,7 @@ angular.module('vizualizeItApp')
       try {
         window.AudioContext = window.AudioContext || window.webkitAudioContext;
         this.context = new AudioContext();
-        this.loadSound(this.playSound);
+        //this.loadSound(this.playSound);
       } catch(e) {
         console.log(e);
         alert('Web Audio API is not supported in this browser');
@@ -27,9 +27,44 @@ angular.module('vizualizeItApp')
       this.update();
     };
 
+    this.setSound = function (sound) {
+      console.log(sound);
+      var fileReader = new FileReader();
+      var that = this;
+      fileReader.onload = function () {
+        that.rawData = fileReader.result;
+        that.replay();
+      };
+      fileReader.readAsArrayBuffer(sound);
+    };
+
+    this.pulseIntervalElapsedFrames = -100;
+    this.beatCounter = 0;
+    var lastCalledTime;
+    this.fps = 0;
     this.update = function () {
       // Schedule the next update
       requestAnimationFrame(this.update.bind(this));
+  
+      if(!lastCalledTime) {
+        lastCalledTime = Date.now();
+        this.fps = 0;
+        return;
+      }
+
+      var delta = (new Date().getTime() - lastCalledTime)/1000;
+      lastCalledTime = Date.now();
+      this.fps = 1/delta;
+
+
+      if (this.pulseIntervalElapsedFrames > this.framesPerPulseInterval) {
+        this.pulseIntervalElapsedFrames = 0;
+        this.beatCounter++;
+        console.log("beat");
+      } else {
+        this.pulseIntervalElapsedFrames++;
+      }
+
 
       var line = function (xo,yo,x,y) {
         ccontext.beginPath();
@@ -43,21 +78,10 @@ angular.module('vizualizeItApp')
       if (this.analyzerNode !== null) {
         var ccontext = this.canvas.getContext('2d');
         var viewWidth = this.canvas.width;
-
         ccontext.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
-
-        var timeWidthDelta = viewWidth / (this.buffer.duration*60);
-        line(0,0,timeService.getElapsedFrames()*timeWidthDelta,0);
-
+        
         frequencyData = new Uint8Array(this.analyzerNode.frequencyBinCount);
         this.analyzerNode.getByteFrequencyData(frequencyData);
-
-        var peakMarkerDelta = viewWidth / frequencyData.length;
-        for (var i = 0; i < frequencyData.length; i++) {
-          if (frequencyData[20] > 100) {
-            line(i * peakMarkerDelta, 0, i * peakMarkerDelta, 100);
-          }
-        }
         this.lowValue = frequencyData[3];
         this.midValue = frequencyData[16];
         this.highValue = frequencyData[30];
@@ -73,8 +97,10 @@ angular.module('vizualizeItApp')
         return this.highValue;
       } else if (section == "mid") {
         return this.midValue;
-      } else {
+      } else if (section == "low") {
         return this.lowValue;
+      } else {
+        return this.beatCounter;
       }
     }
 
@@ -87,8 +113,57 @@ angular.module('vizualizeItApp')
         that.source.connect(that.analyzerNode);
         that.analyzerNode.connect(that.context.destination);
         that.buffer = buffer;
-        //that.source.start(that.context.currentTime);
+        that.source.start(that.context.currentTime);
         that.analyze();
+        
+        var offlineContext = new OfflineAudioContext(1, buffer.length, buffer.sampleRate);
+
+          // Create buffer source
+        var source = offlineContext.createBufferSource();
+        source.buffer = buffer;
+
+          // Create filter
+        var filter = offlineContext.createBiquadFilter();
+        filter.type = "lowpass";
+
+          // Pipe the song into the filter, and the filter into the offline context
+        source.connect(filter);
+        filter.connect(offlineContext.destination);
+
+          // Schedule the song to start playing at time:0
+        source.start(0);
+
+          // Render the song
+        offlineContext.startRendering();
+        console.log("analyzing");
+          // Act on the result
+        offlineContext.oncomplete = function(e) {
+            // Filtered buffer!
+          console.log("analyzed");
+          var filteredBuffer = e.renderedBuffer;
+
+          var peaks,
+              initialThresold = 0.9,
+              thresold = initialThresold,
+              minThresold = 0.3,
+              minPeaks = 30;
+
+          do {
+            peaks = getPeaksAtThreshold(e.renderedBuffer.getChannelData(0), thresold);
+            thresold -= 0.05;
+          } while (peaks.length < minPeaks && thresold >= minThresold);
+
+          var intervals = countIntervalsBetweenNearbyPeaks(peaks);
+
+          var groups = groupNeighborsByTempo(intervals, filteredBuffer.sampleRate);
+
+          var top = groups.sort(function(intA, intB) {
+            return intB.count - intA.count;
+          }).splice(0,5);
+          that.bpm = Math.round(top[0].tempo);
+          that.framesPerPulseInterval = 60*60/that.bpm;
+          console.log(that.framesPerPulseInterval);
+        };
       });
     };
 
@@ -110,30 +185,6 @@ angular.module('vizualizeItApp')
 
     this.analyze = function () {
       this.analyzerNode.fftSize = 64;
-
-      var ccontext = this.canvas.getContext('2d');
-      var viewWidth = this.canvas.width;
-      var line = function (xo,yo,x,y) {
-        ccontext.beginPath();
-        ccontext.moveTo(xo, yo);
-        ccontext.lineTo(x, y);
-        ccontext.stroke();
-      }
-
-      var threshold = 0.95;
-      var peaksArray = [];
-      for (var i = 0; i < this.rawBuffer.length; i++) {
-        //console.log(this.rawBuffer[i]);
-        if (this.rawBuffer[i] > 254) {
-          peaksArray.push(i);
-          i += 1000;
-        }
-      }
-
-      var peakMarkerDelta = viewWidth / this.rawBuffer.length;
-      for (let peakIndex of peaksArray) {
-        line(peakIndex * peakMarkerDelta, 0, peakIndex * peakMarkerDelta, 100);
-      }
     };
 
     this.setCanvas = function (canvas) {
@@ -141,5 +192,69 @@ angular.module('vizualizeItApp')
     };
 
     this.init();
+
+// Function to identify peaks
+function getPeaksAtThreshold(data, threshold) {
+  var peaksArray = [];
+  var length = data.length;
+  for(var i = 0; i < length;) {
+    if (data[i] > threshold) {
+      peaksArray.push(i);
+      // Skip forward ~ 1/4s to get past this peak.
+      i += 10000;
+    }
+    i++;
+  }
+  return peaksArray;
+}
+
+// Function used to return a histogram of peak intervals
+function countIntervalsBetweenNearbyPeaks(peaks) {
+  var intervalCounts = [];
+  peaks.forEach(function(peak, index) {
+    for(var i = 0; i < 10; i++) {
+      var interval = peaks[index + i] - peak;
+      var foundInterval = intervalCounts.some(function(intervalCount) {
+        if (intervalCount.interval === interval)
+          return intervalCount.count++;
+      });
+      if (!foundInterval) {
+        intervalCounts.push({
+          interval: interval,
+          count: 1
+        });
+      }
+    }
+  });
+  return intervalCounts;
+}
+
+// Function used to return a histogram of tempo candidates.
+function groupNeighborsByTempo(intervalCounts, sampleRate) {
+  var tempoCounts = [];
+  intervalCounts.forEach(function(intervalCount, i) {
+    if (intervalCount.interval !== 0) {
+      // Convert an interval to tempo
+      var theoreticalTempo = 60 / (intervalCount.interval / sampleRate );
+
+      // Adjust the tempo to fit within the 90-180 BPM range
+      while (theoreticalTempo < 90) theoreticalTempo *= 2;
+      while (theoreticalTempo > 180) theoreticalTempo /= 2;
+
+      theoreticalTempo = Math.round(theoreticalTempo);
+      var foundTempo = tempoCounts.some(function(tempoCount) {
+        if (tempoCount.tempo === theoreticalTempo)
+          return tempoCount.count += intervalCount.count;
+      });
+      if (!foundTempo) {
+        tempoCounts.push({
+          tempo: theoreticalTempo,
+          count: intervalCount.count
+        });
+      }
+    }
+  });
+  return tempoCounts;
+}
 
   });
